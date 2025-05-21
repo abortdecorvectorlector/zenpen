@@ -114,7 +114,7 @@ function Library() {
 
   return (
     <div className="px-4 py-6 sm:px-6 md:px-8 lg:px-10 max-w-2xl mx-auto text-sm text-dark bg-lightest min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-center">📚 Your Journal Library</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center text-dark">📚 Your Journal Library</h1>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
         <Link to="/" className="text-dark underline hover:text-accent text-sm">
@@ -149,11 +149,15 @@ function Library() {
             className="p-4 bg-white border border-gray-200 rounded shadow-sm"
           >
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-              <h2 className="text-lg font-semibold">{session.date}</h2>
+              <h2 className="text-lg font-semibold text-dark">{session.date}</h2>
               <button
                 onClick={() => generateSummary(session)}
                 disabled={loadingSummaryId === session.id}
-                className="text-sm bg-dark text-white px-3 py-1 rounded hover:bg-accent hover:text-dark"
+                className={`text-sm px-3 py-1 rounded font-medium border transition-colors duration-200 ${
+                  loadingSummaryId === session.id
+                    ? "bg-accent text-dark opacity-70 cursor-wait"
+                    : "bg-dark text-white hover:bg-accent hover:text-dark"
+                }`}
               >
                 {loadingSummaryId === session.id ? "Summarizing..." : "🧠 Generate Daily Summary"}
               </button>
@@ -161,8 +165,8 @@ function Library() {
 
             {summaries[session.id] && (
               <div className="mb-4 p-4 border border-accent bg-lightest text-sm rounded">
-                <strong>🧠 Daily Reflection:</strong>
-                <p className="mt-1 whitespace-pre-wrap">{summaries[session.id]}</p>
+                <strong className="text-dark">🧠 Daily Reflection:</strong>
+                <p className="mt-1 whitespace-pre-wrap text-dark">{summaries[session.id]}</p>
               </div>
             )}
 
@@ -180,7 +184,7 @@ function Library() {
                           {msg.topic}
                         </span>
                       </div>
-                      <p className="mb-2">
+                      <p className="mb-2 text-dark">
                         <strong>📝 You:</strong> {msg.user}
                       </p>
                       <p className="italic text-gray-700">
