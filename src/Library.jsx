@@ -72,15 +72,16 @@ function Library() {
     return grouped;
   };
 
-  const generateSummary = async (session) => {
-    setLoadingSummaryId(session.id);
-    const combinedText = session.entries.map(e => `User: ${e.user}\nAI: ${e.ai}`).join("\n\n");
+   const generateSummary = async (session) => {
+  setLoadingSummaryId(session.id);
+  const combinedText = session.entries.map(e => `User: ${e.user}\nAI: ${e.ai}`).join("\n\n");
 
+  try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-    Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}```,
+        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: "gpt-3.5-turbo",
@@ -92,8 +93,24 @@ function Library() {
           },
           { role: "user", content: combinedText }
         ]
-      })
+      }),
     });
+
+    const data = await response.json();
+
+    if (!data.choices || !data.choices[0]?.message?.content) {
+      throw new Error("No summary returned from API");
+    }
+
+    const summary = data.choices[0].message.content;
+    setSummaries(prev => ({ ...prev, [session.id]: summary }));
+  } catch (error) {
+    console.error("❌ Summary error:", error);
+    alert("There was a problem generating the summary. Please check the console for details.");
+  } finally {
+    setLoadingSummaryId(null);
+  }
+};
 
     const data = await response.json();
     const summary = data.choices?.[0]?.message?.content || "No summary generated.";
