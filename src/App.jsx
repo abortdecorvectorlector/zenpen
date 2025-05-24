@@ -138,13 +138,13 @@ function App() {
       </div>
 
       <button
-        className={`w-full bg-dark text-white px-4 py-2 rounded hover:bg-accent ${
-          isLoading ? "opacity-50 cursor-not-allowed" : ""
-        }`}
+        className={`w-full px-4 py-2 rounded text-white font-semibold transition ${
+          isLoading ? "opacity-60 cursor-wait animate-pulse" : "hover:bg-purple-400"
+        } bg-purple-300`}
         onClick={handleSubmit}
         disabled={isLoading}
       >
-        {isLoading ? "Thinking..." : "Submit Entry"}
+        {isLoading ? "💬 Thinking..." : "💭 Submit Thought"}
       </button>
 
       <Link
