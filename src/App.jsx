@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 function App() {
   const [entry, setEntry] = useState("");
   const [messages, setMessages] = useState([]);
-  const [importance, setImportance] = useState(3); // default 3/5
+  const [importance, setImportance] = useState(3);
+  const [insightLevel, setInsightLevel] = useState(2);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ function App() {
             user: entry,
             ai: "",
             importance,
+            insightLevel,
           },
         ],
       },
@@ -53,6 +55,13 @@ function App() {
     setImportance(3);
     setIsLoading(true);
 
+    const systemPrompt =
+      insightLevel === 1
+        ? "You are a gentle journaling companion. Offer supportive, non-critical feedback."
+        : insightLevel === 2
+        ? "You are a reflective journaling partner. Offer thoughtful but approachable guidance."
+        : "You are a deep, insightful assistant. Encourage the user to uncover blindspots and reflect on their thoughts with depth.";
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -62,11 +71,7 @@ function App() {
       body: JSON.stringify({
         model: "gpt-3.5-turbo",
         messages: [
-          {
-            role: "system",
-            content:
-              "You are a warm journaling companion. Offer helpful, kind insight.",
-          },
+          { role: "system", content: systemPrompt },
           { role: "user", content: entry },
         ],
       }),
@@ -88,6 +93,12 @@ function App() {
 
     setMessages(updatedSessions);
     setIsLoading(false);
+  };
+
+  const insightLabel = {
+    1: "🌱 Gentle",
+    2: "🔍 Balanced",
+    3: "🧠 Deep Insight",
   };
 
   return (
@@ -112,6 +123,18 @@ function App() {
             ★
           </button>
         ))}
+      </div>
+
+      <div className="mb-4 text-sm text-dark">
+        <label className="font-semibold block mb-1">Insight Level: {insightLabel[insightLevel]}</label>
+        <input
+          type="range"
+          min="1"
+          max="3"
+          value={insightLevel}
+          onChange={(e) => setInsightLevel(Number(e.target.value))}
+          className="w-full"
+        />
       </div>
 
       <button
