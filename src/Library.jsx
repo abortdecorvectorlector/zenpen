@@ -32,18 +32,6 @@ function Library() {
     }
   };
 
-  const getTagColor = (topic) => {
-    switch (topic) {
-      case "work": return "bg-accent text-dark";
-      case "life": return "bg-accent text-dark";
-      case "school": return "bg-accent text-dark";
-      case "relationships": return "bg-accent text-dark";
-      case "goals": return "bg-accent text-dark";
-      case "emotions": return "bg-accent text-dark";
-      default: return "bg-lightest text-dark";
-    }
-  };
-
   const matchesSearch = (entry) => {
     const term = searchTerm.toLowerCase();
     return (
@@ -63,18 +51,15 @@ function Library() {
     };
   }).filter(session => session.entries.length > 0);
 
-  const groupEntriesByTopic = (entries) => {
-    const grouped = {};
-    entries.forEach(entry => {
-      if (!grouped[entry.topic]) grouped[entry.topic] = [];
-      grouped[entry.topic].push(entry);
-    });
-    return grouped;
-  };
-
   const generateSummary = async (session) => {
     setLoadingSummaryId(session.id);
     const combinedText = session.entries.map(e => `User: ${e.user}\nAI: ${e.ai}`).join("\n\n");
+
+    if (!combinedText.trim()) {
+      alert("This session has no valid entries to summarize.");
+      setLoadingSummaryId(null);
+      return;
+    }
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -97,16 +82,12 @@ function Library() {
       });
 
       const data = await response.json();
-
-      if (!data.choices || !data.choices[0]?.message?.content) {
-        throw new Error("No summary returned from API");
-      }
-
-      const summary = data.choices[0].message.content;
+      const summary = data.choices?.[0]?.message?.content;
+      if (!summary) throw new Error("No summary returned from API.");
       setSummaries(prev => ({ ...prev, [session.id]: summary }));
     } catch (error) {
       console.error("❌ Summary error:", error);
-      alert("There was a problem generating the summary. Please check the console for details.");
+      alert("There was a problem generating the summary. Check the console for details.");
     } finally {
       setLoadingSummaryId(null);
     }
@@ -170,36 +151,30 @@ function Library() {
               </div>
             )}
 
-            {Object.entries(groupEntriesByTopic(session.entries)).map(([topic, entries]) => (
-              <div key={topic} className="mb-6">
-                <h3 className={`text-sm font-semibold mb-2 px-2 py-1 inline-block rounded ${getTagColor(topic)}`}>
-                  {topic.toUpperCase()}
-                </h3>
-                <div className="space-y-4">
-                  {entries.map((msg, idx) => (
-                    <div key={idx} className="p-3 border rounded bg-lightest">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-gray-600">🕒 {msg.timestamp}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full font-semibold ${getTagColor(msg.topic)}`}>
-                          {msg.topic}
-                        </span>
-                      </div>
-                      <p className="mb-2 text-dark">
-                        <strong>📝 You:</strong> {msg.user}
-                      </p>
-                      <p className="italic text-gray-700">
-                        <strong>🔍 Insight:</strong> {msg.ai}</p>
-                      <button
-                        onClick={() => setActiveChatEntry(msg)}
-                        className="text-sm text-dark underline mt-1 hover:text-accent"
-                      >
-                        🗣 Continue Chat
-                      </button>
-                    </div>
-                  ))}
+            <div className="space-y-4">
+              {session.entries.map((msg, idx) => (
+                <div key={idx} className="p-3 border rounded bg-lightest">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-600">🕒 {msg.timestamp}</span>
+                    <span className="text-yellow-500 text-sm">
+                      {"★".repeat(msg.importance || 0) + "☆".repeat(5 - (msg.importance || 0))}
+                    </span>
+                  </div>
+                  <p className="mb-2 text-dark">
+                    <strong>📝 You:</strong> {msg.user}
+                  </p>
+                  <p className="italic text-gray-700">
+                    <strong>🔍 Insight:</strong> {msg.ai}
+                  </p>
+                  <button
+                    onClick={() => setActiveChatEntry(msg)}
+                    className="text-sm text-dark underline mt-1 hover:text-accent"
+                  >
+                    🗣 Continue Chat
+                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ))}
       </div>
