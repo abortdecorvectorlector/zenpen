@@ -16,18 +16,19 @@ function App() {
     else localStorage.setItem("theme", "light");
   }, []);
 
-  // Apply theme class to <html>
+  // Apply theme
   useEffect(() => {
-    document.documentElement.classList.remove(theme === "light" ? "dark" : "light");
-    document.documentElement.classList.add(theme);
+    document.documentElement.classList.toggle("dark", theme === "dark");
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  // Load sessions
   useEffect(() => {
     const saved = localStorage.getItem("journalSessions");
     if (saved) setMessages(JSON.parse(saved));
   }, []);
 
+  // Persist sessions
   useEffect(() => {
     localStorage.setItem("journalSessions", JSON.stringify(messages));
   }, [messages]);
@@ -43,9 +44,8 @@ function App() {
     const timestamp = new Date().toLocaleString();
     const sessionId = new Date().toISOString().split("T")[0];
 
-    // Merge sessions & entries
     const updated = [
-      ...(messages || []),
+      ...messages,
       {
         id: sessionId,
         entries: [
@@ -54,24 +54,24 @@ function App() {
         ],
       },
     ];
+
+    // Merge by ID
     const merged = Object.values(
-      updated.reduce((acc, session) => {
-        acc[session.id] = {
-          id: session.id,
-          entries: [...(acc[session.id]?.entries || []), ...session.entries],
-        };
+      updated.reduce((acc, s) => {
+        acc[s.id] = acc[s.id]
+          ? { id: s.id, entries: [...acc[s.id].entries, ...s.entries] }
+          : s;
         return acc;
       }, {})
     );
+
     setMessages(merged);
     setEntry("");
 
-    // Tighter prompt using importance
-    const systemPrompt = `You are a journaling assistant. Use a ${{
-      1: 'gentle',
-      2: 'balanced',
-      3: 'deep'
-    }[insightLevel]} tone. Summarize the top ${importance}★ entries in 2–3 concise bullet points.`;
+    // Prompt tuning
+    const systemPrompt = `You are a journaling assistant. In a ${
+      insightLevel === 1 ? "gentle" : insightLevel === 2 ? "balanced" : "deep"
+    } tone, summarize the top ${importance}★ entries in 2-3 concise bullet points.`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -93,7 +93,7 @@ function App() {
     const data = await response.json();
     const aiReply = data.choices?.[0]?.message?.content || "No response.";
 
-    // Attach AI reply to last entry
+    // Attach AI reply
     const updatedSessions = merged.map(s =>
       s.id === sessionId
         ? {
@@ -112,70 +112,70 @@ function App() {
   const insightLabel = { 1: "🌱 Gentle", 2: "🔍 Balanced", 3: "🧠 Deep Insight" };
 
   return (
-    <div className="px-4 sm:px-6 md:px-8 py-6 max-w-lg mx-auto bg-white dark:bg-gray-900 min-h-screen transition-colors">
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">📝 AI Journal</h1>
-        <button onClick={toggleTheme} className="p-2 rounded focus:outline-none">
-          {theme === "light" ? "🌙" : "☀️"}
-        </button>
-      </header>
-
-      <textarea
-        className="w-full h-32 p-3 border border-gray-300 dark:border-gray-700 rounded mb-4 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-        placeholder="What's on your mind?"
-        value={entry}
-        onChange={e => setEntry(e.target.value)}
-      />
-
-      <div className="mb-4 text-sm">
-        <label className="font-semibold mr-2 text-gray-900 dark:text-gray-100">Importance:</label>
-        {[1, 2, 3, 4, 5].map(star => (
-          <button
-            key={star}
-            onClick={() => setImportance(star)}
-            className={`text-xl focus:outline-none transition ${
-              star <= importance
-                ? "text-yellow-400"
-                : "text-gray-400 dark:text-gray-600"
-            }`}
-          >
-            ★
+    <div className="min-h-screen w-screen flex justify-center items-start bg-white dark:bg-gray-900">
+      <div className="w-full max-w-lg px-4 sm:px-6 md:px-8 py-6">
+        <header className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">📝 AI Journal</h1>
+          <button onClick={toggleTheme} className="p-2 rounded focus:outline-none">
+            {theme === "light" ? "🌙" : "☀️"}
           </button>
-        ))}
-      </div>
+        </header>
 
-      <div className="mb-4 text-sm">
-        <label className="font-semibold block mb-1 text-gray-900 dark:text-gray-100">
-          Insight Level: {insightLabel[insightLevel]}
-        </label>
-        <input
-          type="range"
-          min="1"
-          max="3"
-          value={insightLevel}
-          onChange={e => setInsightLevel(Number(e.target.value))}
-          className="w-full"
+        <textarea
+          className="w-full h-32 p-3 border border-gray-300 dark:border-gray-700 rounded mb-4 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          placeholder="What's on your mind?"
+          value={entry}
+          onChange={e => setEntry(e.target.value)}
         />
+
+        <div className="mb-4 text-sm">
+          <label className="font-semibold mr-2 text-gray-900 dark:text-gray-100">Importance:</label>
+          {[1, 2, 3, 4, 5].map(star => (
+            <button
+              key={star}
+              onClick={() => setImportance(star)}
+              className={`text-xl focus:outline-none transition ${
+                star <= importance ? "text-yellow-400" : "text-gray-400 dark:text-gray-600"
+              }`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-4 text-sm">
+          <label className="font-semibold block mb-1 text-gray-900 dark:text-gray-100">
+            Insight Level: {insightLabel[insightLevel]}
+          </label>
+          <input
+            type="range"
+            min="1"
+            max="3"
+            value={insightLevel}
+            onChange={e => setInsightLevel(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className={`w-full px-4 py-2 rounded text-white font-semibold transition ${
+            isLoading
+              ? "opacity-60 cursor-wait animate-pulse bg-purple-500"
+              : "bg-purple-400 hover:bg-purple-500"
+          }`}
+        >
+          {isLoading ? "💬 Thinking..." : "💭 Submit Thought"}
+        </button>
+
+        <Link
+          to="/library"
+          className="block mt-4 text-center text-sm underline text-gray-900 dark:text-gray-100 hover:text-purple-400"
+        >
+          📚 View Library
+        </Link>
       </div>
-
-      <button
-        onClick={handleSubmit}
-        disabled={isLoading}
-        className={`w-full px-4 py-2 rounded text-white font-semibold transition ${
-          isLoading
-            ? "opacity-60 cursor-wait animate-pulse bg-purple-500"
-            : "bg-purple-400 hover:bg-purple-500"
-        }`}
-      >
-        {isLoading ? "💬 Thinking..." : "💭 Submit Thought"}
-      </button>
-
-      <Link
-        to="/library"
-        className="block mt-4 text-center text-sm underline text-gray-900 dark:text-gray-100 hover:text-purple-400"
-      >
-        📚 View Library
-      </Link>
     </div>
   );
 }
